@@ -398,9 +398,15 @@
     }
 
     @media (max-width: 768px) {
-      .hero-art { display: none; }
+      .hero-art { 
+        display: flex; 
+        position: relative; 
+        width: 100%; 
+        right: auto; top: auto; bottom: auto;
+      }
+      .hero-art-grid { padding: 40px 0; }
       .hero-content { max-width: 100%; }
-      .hero-container { grid-template-columns: 1fr; text-align: center; }
+      .hero-container { grid-template-columns: 1fr; text-align: center; min-height: auto; }
     }
 
     /* Hero scroll hint */
@@ -1655,12 +1661,39 @@
 
   // ── LOAD DATA FROM JSON ──
   async function loadAppData() {
+    let data;
     try {
       const response = await fetch('data.json');
-      const data = await response.json();
+      if (!response.ok) throw new Error("JSON not found");
+      data = await response.json();
+    } catch (err) {
+      console.warn("Using generated placeholder images.");
+      data = {
+        hero: {
+          frames: "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?q=80&w=400",
+          sketches: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=400",
+          nameplates: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=400",
+          wall: "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?q=80&w=400"
+        },
+        about: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?q=80&w=800",
+        gallery: [
+          { cat: "frames", url: "https://picsum.photos/seed/p1/400/400", label: "Custom Frame" },
+          { cat: "sketches", url: "https://picsum.photos/seed/p2/400/400", label: "Portrait Sketch" },
+          { cat: "nameplates", url: "https://picsum.photos/seed/p3/400/400", label: "Door Name Plate" },
+          { cat: "wall", url: "https://picsum.photos/seed/p4/400/400", label: "Wall Mural" },
+          { cat: "frames", url: "https://picsum.photos/seed/p5/400/400", label: "Gift Frame" },
+          { cat: "sketches", url: "https://picsum.photos/seed/p6/400/400", label: "Charcoal Art" }
+        ],
+        beforeAfter: [
+          { before: "https://picsum.photos/seed/b1/400/300", after: "https://picsum.photos/seed/a1/400/300", desc: "Expert restoration of antique wooden frames." },
+          { before: "https://picsum.photos/seed/b2/400/300", after: "https://picsum.photos/seed/a2/400/300", desc: "Before and After of a custom sketch touch-up." }
+        ]
+      };
+    }
 
+    try {
       // Load Hero Images
-      if (data.hero) {
+      if (data && data.hero) {
         document.getElementById('hero-img-1').style.backgroundImage = `url('${data.hero.frames}')`;
         document.getElementById('hero-img-2').style.backgroundImage = `url('${data.hero.sketches}')`;
         document.getElementById('hero-img-3').style.backgroundImage = `url('${data.hero.nameplates}')`;
@@ -1668,11 +1701,11 @@
       }
 
       // Load About Image
-      if (data.about) document.getElementById('aboutImg').src = data.about;
+      if (data && data.about) document.getElementById('aboutImg').src = data.about;
 
       // Load Gallery
       const grid = document.getElementById('galleryGrid');
-      if (data.gallery) {
+      if (data && data.gallery) {
         grid.innerHTML = data.gallery.map(item => `
         <div class="gallery-item reveal" data-cat="${item.cat}">
           <div class="gallery-item-inner">
@@ -1687,7 +1720,7 @@
 
       // Load Before & After
       const baGrid = document.getElementById('baGrid');
-      if (data.beforeAfter) {
+      if (data && data.beforeAfter) {
         baGrid.innerHTML = data.beforeAfter.map(item => `
         <div class="ba-card">
           <div class="ba-panels">
@@ -1724,7 +1757,7 @@
       });
 
     } catch (err) {
-      console.error("Error loading image data:", err);
+      console.error("Error rendering app data:", err);
     }
   }
 

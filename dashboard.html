@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Editor Mode — Pooja Frame Maker & Arts</title>
+  <!-- Reusing all Google Fonts from the main site -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  
+  <style>
+    /* Re-injecting Main Website CSS Core */
+    :root { --gold: #D4A853; --dark: #0d0b08; --dark-2: #161209; --dark-3: #1f1810; --text: #e8dcc8; --white: #faf6ee; --radius: 12px; }
+    body { background: var(--dark); color: var(--text); font-family: 'Poppins', sans-serif; overflow-x: hidden; }
+    .serif { font-family: 'Playfair Display', serif; }
+    .container { width: 92%; max-width: 1100px; margin: 0 auto; }
+    .section-pad { padding: 80px 0; }
+    
+    /* Dashboard Specific UI */
+    .admin-bar {
+      position: fixed; top: 0; left: 0; right: 0; background: var(--gold); 
+      color: var(--dark); padding: 10px 20px; z-index: 10000;
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .edit-hint { 
+      position: absolute; top: 5px; right: 5px; background: rgba(212,168,83,0.9);
+      color: black; font-size: 10px; padding: 2px 6px; border-radius: 4px;
+      pointer-events: none; z-index: 5; opacity: 0; transition: 0.3s;
+    }
+    [contenteditable]:hover + .edit-hint, .img-editable:hover .edit-hint { opacity: 1; }
+    [contenteditable] { outline: none; border: 1px dashed transparent; transition: 0.3s; }
+    [contenteditable]:focus { border-color: var(--gold); background: rgba(212,168,83,0.05); }
+    
+    .img-editable { position: relative; cursor: pointer; }
+    .img-editable::after {
+      content: 'Click to Upload'; position: absolute; inset: 0;
+      background: rgba(0,0,0,0.5); display: flex; align-items: center;
+      justify-content: center; opacity: 0; transition: 0.3s; color: var(--gold);
+      font-size: 12px; font-weight: 600;
+    }
+    .img-editable:hover::after { opacity: 1; }
+
+    /* Mirroring index.html styles for the Gallery */
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    .gallery-item { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid rgba(212,168,83,0.12); aspect-ratio: 1; }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+    
+    /* Mirroring index.html styles for Hero */
+    .hero-art-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 400px; }
+    .art-card { border-radius: 10px; overflow: hidden; border: 1px solid rgba(212,168,83,0.18); background: var(--dark-3); }
+    .art-card-inner { height: 120px; background-size: cover; background-position: center; }
+    .art-card-label { padding: 5px; font-size: 10px; color: var(--gold); text-align: center; text-transform: uppercase; }
+
+    /* Mirroring Before/After */
+    .ba-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+    .ba-card { background: var(--dark-3); border-radius: 12px; border: 1px solid rgba(212,168,83,0.12); overflow: hidden; padding: 10px; }
+    .ba-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: 150px; }
+    .ba-panel-img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+
+    .btn-add { background: var(--gold); color: black; border: none; padding: 10px 20px; border-radius: 99px; cursor: pointer; margin: 20px 0; font-weight: 600; }
+    .btn-delete { position: absolute; top: 10px; left: 10px; background: #8b2e2e; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; z-index: 10; }
+
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="admin-bar">
+  <span>Pooja Arts Editor Mode</span>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <span id="file-status" style="font-size: 12px; color: #000; opacity: 0.7;">Click Save to link file</span>
+    <button id="btn-save" class="btn-add" style="margin:0; padding: 5px 15px;" onclick="saveDirectly()">Save Changes</button>
+    <button class="btn-add" style="margin:0; padding: 5px 15px; background: #333; color: white;" onclick="downloadJSON()">Download data.json</button>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container">
+    <h2 class="serif" style="color:var(--gold)">1. Hero Section</h2>
+    <p style="font-size: 12px; margin-bottom: 20px;">Click the images to upload your own. These appear on your main homepage.</p>
+    
+    <div class="hero-art-grid">
+      <div class="art-card">
+        <div class="art-card-inner img-editable" id="hero-frames" onclick="triggerUpload('hero-frames-file')">
+          <span class="edit-hint">Upload</span>
+        </div>
+        <div class="art-card-label">Photo Frames</div>
+        <input type="file" id="hero-frames-file" onchange="handleFileUpload(this, 'hero-frames')">
+      </div>
+      <div class="art-card">
+        <div class="art-card-inner img-editable" id="hero-sketches" onclick="triggerUpload('hero-sketches-file')">
+          <span class="edit-hint">Upload</span>
+        </div>
+        <div class="art-card-label">Sketches</div>
+        <input type="file" id="hero-sketches-file" onchange="handleFileUpload(this, 'hero-sketches')">
+      </div>
+      <div class="art-card">
+        <div class="art-card-inner img-editable" id="hero-nameplates" onclick="triggerUpload('hero-nameplates-file')">
+          <span class="edit-hint">Upload</span>
+        </div>
+        <div class="art-card-label">Name Plates</div>
+        <input type="file" id="hero-nameplates-file" onchange="handleFileUpload(this, 'hero-nameplates')">
+      </div>
+      <div class="art-card">
+        <div class="art-card-inner img-editable" id="hero-wall" onclick="triggerUpload('hero-wall-file')">
+          <span class="edit-hint">Upload</span>
+        </div>
+        <div class="art-card-label">Wall Paintings</div>
+        <input type="file" id="hero-wall-file" onchange="handleFileUpload(this, 'hero-wall')">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-pad" style="background:var(--dark-2)">
+  <div class="container">
+    <h2 class="serif" style="color:var(--gold)">2. About Section Image</h2>
+    <div class="img-editable" style="width: 300px; height: 200px; margin-top: 20px;" onclick="triggerUpload('about-img-file')">
+      <img id="about-img" src="" style="width:100%; height:100%; object-fit:cover; border-radius: 12px;">
+      <span class="edit-hint">Upload</span>
+    </div>
+    <input type="file" id="about-img-file" onchange="handleFileUpload(this, 'about-img')">
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container">
+    <h2 class="serif" style="color:var(--gold)">3. Gallery Items</h2>
+    <p style="font-size: 12px; margin-bottom: 20px;">Edit category and label text directly. Click image to replace.</p>
+    <div class="gallery-grid" id="gallery-container">
+      <!-- Gallery items will load here -->
+    </div>
+    <button class="btn-add" onclick="addGalleryItem()">+ Add New Gallery Item</button>
+  </div>
+</div>
+
+<div class="section-pad" style="background:var(--dark-2)">
+  <div class="container">
+    <h2 class="serif" style="color:var(--gold)">4. Before & After Restoration</h2>
+    <div class="ba-grid" id="ba-container">
+      <!-- B/A items will load here -->
+    </div>
+    <button class="btn-add" onclick="addBAItem()">+ Add New Case Study</button>
+  </div>
+</div>
+
+<script>
+  let fileHandle = null;
+
+  async function init() {
+    try {
+      const response = await fetch('data.json');
+      const data = await response.json();
+      
+      // Hero
+      document.getElementById('hero-frames').style.backgroundImage = `url('${data.hero.frames}')`;
+      document.getElementById('hero-sketches').style.backgroundImage = `url('${data.hero.sketches}')`;
+      document.getElementById('hero-nameplates').style.backgroundImage = `url('${data.hero.nameplates}')`;
+      document.getElementById('hero-wall').style.backgroundImage = `url('${data.hero.wall}')`;
+      document.getElementById('hero-frames').dataset.url = data.hero.frames;
+      document.getElementById('hero-sketches').dataset.url = data.hero.sketches;
+      document.getElementById('hero-nameplates').dataset.url = data.hero.nameplates;
+      document.getElementById('hero-wall').dataset.url = data.hero.wall;
+
+      // About
+      document.getElementById('about-img').src = data.about;
+
+      // Gallery
+      data.gallery.forEach(item => addGalleryItem(item));
+
+      // B/A
+      data.beforeAfter.forEach(item => addBAItem(item));
+    } catch (e) {
+      alert("Please run this dashboard using a local server (like Live Server) to load existing data.");
+    }
+  }
+
+  function triggerUpload(id) { document.getElementById(id).click(); }
+
+  function handleFileUpload(input, targetId) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const target = document.getElementById(targetId);
+        if (target.tagName === 'IMG') {
+          target.src = e.target.result;
+        } else {
+          target.style.backgroundImage = `url('${e.target.result}')`;
+          target.dataset.url = e.target.result;
+        }
+        if (fileHandle) await saveDirectly();
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function addGalleryItem(data = {cat: 'frames', label: '', url: ''}) {
+    const grid = document.getElementById('gallery-container');
+    const id = 'gal-' + Math.random().toString(36).substr(2, 9);
+    const item = document.createElement('div');
+    item.className = 'gallery-item';
+    item.innerHTML = `
+      <button class="btn-delete" onclick="this.parentElement.remove(); autoSave();">Delete</button>
+      <div class="img-editable" onclick="triggerUpload('${id}-file')" style="height:100%">
+        <img id="${id}-img" src="${data.url || 'https://via.placeholder.com/300'}" style="width:100%; height:100%; object-fit:cover;">
+        <span class="edit-hint">Change Image</span>
+      </div>
+      <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.8); padding:10px;">
+        <div contenteditable="true" class="gal-cat-val" style="font-size:10px; color:var(--gold)">${data.cat}</div>
+        <div contenteditable="true" class="gal-label-val" style="font-size:12px;">${data.label || 'New Item'}</div>
+      </div>
+      <input type="file" id="${id}-file" onchange="handleFileUpload(this, '${id}-img')">
+    `;
+    grid.appendChild(item);
+  }
+
+  function addBAItem(data = {desc: '', before: '', after: ''}) {
+    const grid = document.getElementById('ba-container');
+    const idB = 'ba-b-' + Math.random().toString(36).substr(2, 9);
+    const idA = 'ba-a-' + Math.random().toString(36).substr(2, 9);
+    const item = document.createElement('div');
+    item.className = 'ba-card';
+    item.innerHTML = `
+      <button class="btn-delete" onclick="this.parentElement.remove(); autoSave();">Delete</button>
+      <div class="ba-panels">
+        <div class="img-editable" onclick="triggerUpload('${idB}-file')">
+          <img id="${idB}-img" class="ba-panel-img" src="${data.before || 'https://via.placeholder.com/200'}">
+          <span class="edit-hint">Before</span>
+        </div>
+        <div class="img-editable" onclick="triggerUpload('${idA}-file')">
+          <img id="${idA}-img" class="ba-panel-img" src="${data.after || 'https://via.placeholder.com/200'}">
+          <span class="edit-hint">After</span>
+        </div>
+      </div>
+      <div contenteditable="true" class="ba-desc-val" style="font-size:12px; margin-top:10px; text-align:center; color:var(--text-muted)">
+        ${data.desc || 'Case study description...'}
+      </div>
+      <input type="file" id="${idB}-file" onchange="handleFileUpload(this, '${idB}-img')">
+      <input type="file" id="${idA}-file" onchange="handleFileUpload(this, '${idA}-img')">
+    `;
+    grid.appendChild(item);
+  }
+
+  async function autoSave() {
+    if (fileHandle) {
+      await saveDirectly();
+    }
+  }
+
+  function getAppData() {
+    const out = {
+      hero: {
+        frames: document.getElementById('hero-frames').dataset.url,
+        sketches: document.getElementById('hero-sketches').dataset.url,
+        nameplates: document.getElementById('hero-nameplates').dataset.url,
+        wall: document.getElementById('hero-wall').dataset.url
+      },
+      about: document.getElementById('about-img').src,
+      gallery: [],
+      beforeAfter: []
+    };
+    document.querySelectorAll('.gallery-item').forEach(el => {
+      out.gallery.push({
+        cat: el.querySelector('.gal-cat-val').innerText.trim(),
+        label: el.querySelector('.gal-label-val').innerText.trim(),
+        url: el.querySelector('img').src
+      });
+    });
+    document.querySelectorAll('.ba-card').forEach(el => {
+      const imgs = el.querySelectorAll('img');
+      out.beforeAfter.push({
+        desc: el.querySelector('.ba-desc-val').innerText.trim(),
+        before: imgs[0].src,
+        after: imgs[1].src
+      });
+    });
+    return out;
+  }
+
+  function downloadJSON() {
+    const data = getAppData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'data.json';
+    a.click();
+    alert("Downloaded! Upload this file to your GitHub repository to update the live site.");
+  }
+
+  async function saveDirectly() {
+    try {
+      // 1. Request file handle if we don't have it
+      if (!fileHandle) {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{
+            description: 'JSON File',
+            accept: {'application/json': ['.json']},
+          }],
+          multiple: false
+        });
+        fileHandle = handle;
+      }
+
+      // 2. Check/Request write permission
+      const options = { mode: 'readwrite' };
+      if (await fileHandle.queryPermission(options) !== 'granted') {
+        if (await fileHandle.requestPermission(options) !== 'granted') {
+          alert("Permission denied. Cannot save.");
+          return;
+        }
+      }
+
+      // 3. Write the data
+      const writable = await fileHandle.createWritable();
+      const data = getAppData();
+      await writable.write(JSON.stringify(data, null, 2));
+      await writable.close();
+
+      // 4. Update UI
+      document.getElementById('file-status').innerText = "✅ Saved to " + fileHandle.name;
+      document.getElementById('btn-save').innerText = "Save Changes";
+      
+      const originalColor = document.querySelector('.admin-bar').style.backgroundColor;
+      document.querySelector('.admin-bar').style.backgroundColor = "#25D366";
+      setTimeout(() => { document.querySelector('.admin-bar').style.backgroundColor = originalColor; }, 1000);
+
+    } catch (err) {
+      console.error(err);
+      if (err.name !== 'AbortError') alert("Error saving: " + err.message);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
